@@ -104,7 +104,9 @@ class GameManager:
             self.updateAlarm(time.clock())
 
             turn = 1 - turn
+
         print(maxTile)
+        print("[MAX TILE]: " + str(maxTile))
 
     def isGameOver(self):
         return not self.grid.canMove()

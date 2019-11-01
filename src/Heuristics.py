@@ -53,10 +53,12 @@ class Heuristics:
   def getMonotinicityCounter(grid, pos):
     x, y = pos # One of these should be None
     runner = 0
-    counter = 0
+    counter = {
+      "up": 0,
+      "down": 0,
+      "same": 0
+    }
     prevTileValue = 0
-    absoluteValueChanges = 0
-    sameValueComparisons = 0
 
     while (runner < 4):
       currentPos = (x, runner) if y == None else (runner, y)
@@ -65,51 +67,45 @@ class Heuristics:
         pass # blank, keep moving
       else:
         if (prevTileValue > 0): # compare with a previous one if already set
-          counterChange = 0
           if (prevTileValue < currentTileValue): # number is increasing
-            counterChange = math.log2(currentTileValue) - math.log2(prevTileValue)
+            counter["up"] += math.log2(currentTileValue) - math.log2(prevTileValue)
           elif (prevTileValue > currentTileValue): # number is decreasing
-            counterChange = -(math.log2(prevTileValue) - math.log2(currentTileValue))
+            counter["down"] += math.log2(prevTileValue) - math.log2(currentTileValue)
           else:
-            # we want to reward if the numbers are not changing (opposed to going up, then going down)
-            # keep track so we can add them at the end 
-            sameValueComparisons += 1
+            counter["same"] += 1
           
-          counter += counterChange
-          absoluteValueChanges += abs(counterChange)
         prevTileValue = currentTileValue
       runner += 1
     
-    return (counter, absoluteValueChanges, sameValueComparisons)
+    return counter
 
   @staticmethod
   def monotonicity(grid):
-    absoluteValueChangesY = 0
-    absoluteValueChangesX = 0
-    monotonicityCountersY = []
-    monotonicityCountersX = []
-    sameValueComparisonsY = 0
-    sameValueComparisonsX = 0
+    changeAcrossColumns = 0
+    changeAcrossRows = 0
+    counterSame = 0
+    counterChange = 0
 
+    # vertical
     for y in range(0, 4):
-      (counter, absoluteValueChanges, sameValueComparisons) = Heuristics.getMonotinicityCounter(grid, (None, y))
-      monotonicityCountersY.append(counter)
-      absoluteValueChangesY += absoluteValueChanges
-      sameValueComparisonsY += sameValueComparisons
+      counter = Heuristics.getMonotinicityCounter(grid, (None, y))
+      changeAcrossColumns += counter["up"]
+      changeAcrossColumns -= counter["down"]
+      counterSame += counter["same"]
+      counterChange += counter["up"] + counter["down"] + counter["same"]
 
+    # horizontal
     for x in range(0, 4):
-      (counter, absoluteValueChanges, sameValueComparisons) = Heuristics.getMonotinicityCounter(grid, (x, None))
-      monotonicityCountersX.append(counter)
-      absoluteValueChangesX += absoluteValueChanges
-      sameValueComparisonsX += sameValueComparisons
+      counter = Heuristics.getMonotinicityCounter(grid, (x, None))
+      changeAcrossRows += counter["up"]
+      changeAcrossRows -= counter["down"]
+      counterSame += counter["same"]
+      counterChange += counter["up"] + counter["down"] + counter["same"]
 
-    totalY = functools.reduce(operator.add, monotonicityCountersY, 0)
-    totalX = functools.reduce(operator.add, monotonicityCountersX, 0) 
+    totalY = abs(changeAcrossColumns)
+    totalX = abs(changeAcrossRows)
 
-    averageY = (abs(totalY) + sameValueComparisonsY) / (absoluteValueChangesY + sameValueComparisonsY)
-    averageX = (abs(totalX) + sameValueComparisonsX) / (absoluteValueChangesX + sameValueComparisonsX)
-
-    return (averageX + averageY) / 2
+    return (totalY + totalX + counterSame) / counterChange
 
   @staticmethod
   def smoothness(grid):
